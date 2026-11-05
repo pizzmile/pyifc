@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" ng-app="sensorHub">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f5f1">
+  <title>Sensor Hub | Fleet readings</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body ng-controller="AppController as app">
+  <header class="topbar">
+    <a class="brand" href="/ui/" ng-click="app.navigate('trains', $event)" aria-label="Sensor Hub home">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>Sensor<span class="brand-light">Hub</span></span>
+    </a>
+    <div class="topbar-meta"><span class="live-dot"></span> LOCAL DEMO <span class="meta-divider">/</span> TRAIN TELEMETRY</div>
+    <nav class="main-nav" aria-label="Main navigation">
+      <button ng-class="{'nav-active': app.page === 'trains'}" ng-click="app.navigate('trains')">Fleet view</button>
+      <button ng-class="{'nav-active': app.page === 'upload'}" ng-click="app.navigate('upload')">Upload reading <span class="nav-plus">+</span></button>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading" ng-if="app.page === 'trains'">
+      <div>
+        <p class="eyebrow">OPERATIONS / TELEMETRY</p>
+        <h1>Fleet readings</h1>
+        <p class="lede">Processed measurements grouped by train.</p>
+      </div>
+      <div class="heading-actions">
+        <span class="refresh-state"><span class="live-dot"></span>{{app.lastUpdated ? ('Updated ' + (app.lastUpdated | date:'HH:mm:ss')) : 'Waiting for data'}}</span>
+        <button class="icon-button" ng-click="app.loadOverview()" aria-label="Refresh fleet readings" title="Refresh readings">↻</button>
+      </div>
+    </section>
+
+    <section class="overview-layout" ng-if="app.page === 'trains' && !app.selectedTrain">
+      <aside class="train-rail">
+        <div class="rail-heading"><span>TRAINS</span><span class="count-badge">{{app.trains.length}}</span></div>
+        <p class="rail-empty" ng-if="!app.loading && !app.trains.length && !app.error">No processed trains yet.</p>
+        <button class="train-row" ng-repeat="train in app.trains track by train.key" ng-click="app.openTrain(train)" ng-class="{'train-row-active': $first}">
+          <span class="train-avatar">{{train.asset_id.slice(-2)}}</span>
+          <span class="train-label"><strong>{{train.asset_id}}</strong><small>{{train.fleet_id}}</small></span>
+          <span class="row-arrow">↗</span>
+        </button>
+        <p class="rail-footnote" ng-if="app.trains.length">Showing trains in the latest 100 readings.</p>
+      </aside>
+
+      <section class="overview-main">
+        <div class="section-bar"><div><p class="eyebrow">LATEST SNAPSHOT</p><h2>At a glance</h2></div><span class="result-count">{{app.readings.length}} RECORDS</span></div>
+        <div class="notice notice-error" ng-if="app.error">{{app.error}}</div>
+        <div class="loading-line" ng-if="app.loading"><span class="spinner"></span>Loading processed readings…</div>
+        <div class="empty-state" ng-if="!app.loading && !app.error && !app.trains.length">
+          <span class="empty-glyph">◌</span>
+          <h3>No readings have arrived</h3>
+          <p>Upload a speed or line-voltage reading to start the fleet view.</p>
+          <button class="button button-dark" ng-click="app.navigate('upload')">Upload a reading <span>→</span></button>
+        </div>
+        <div class="snapshot-table" ng-if="app.trains.length">
+          <div class="snapshot-head"><span>TRAIN / FLEET</span><span>SPEED</span><span>LINE VOLTAGE</span><span>LAST READING</span></div>
+          <button class="snapshot-row" ng-repeat="train in app.trains track by train.key" ng-click="app.openTrain(train)">
+            <span class="snapshot-train"><strong>{{train.asset_id}}</strong><small>{{train.fleet_id}}</small></span>
+            <span class="measurement" ng-class="{'measurement-missing': !train.latest.speed}"><strong>{{train.latest.speed ? (train.latest.speed.value | number:1) : '—'}}</strong><small>{{train.latest.speed ? train.latest.speed.unit : 'No data'}}</small></span>
+            <span class="measurement" ng-class="{'measurement-missing': !train.latest.line_voltage}"><strong>{{train.latest.line_voltage ? (train.latest.line_voltage.value | number:0) : '—'}}</strong><small>{{train.latest.line_voltage ? train.latest.line_voltage.unit : 'No data'}}</small></span>
+            <span class="last-seen">{{train.latestReading.timestamp | date:'MMM d, HH:mm:ss'}} <b>↗</b></span>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <section class="train-detail" ng-if="app.page === 'trains' && app.selectedTrain">
+      <button class="back-link" ng-click="app.closeTrain()"><span>←</span> All trains</button>
+      <div class="detail-heading">
+        <div class="detail-title"><span class="train-avatar train-avatar-large">{{app.selectedTrain.asset_id.slice(-2)}}</span><div><p class="eyebrow">{{app.selectedTrain.fleet_id}}</p><h2>{{app.selectedTrain.asset_id}}</h2></div></div>
+        <span class="result-count">LATEST {{app.detailReadings.length}} / 100</span>
+      </div>
+      <div class="notice notice-error" ng-if="app.error">{{app.error}}</div>
+      <div class="loading-line" ng-if="app.detailLoading"><span class="spinner"></span>Loading train history…</div>
+      <div class="metric-strip" ng-if="!app.detailLoading">
+        <article class="metric metric-speed"><span class="metric-label"><i></i> SPEED</span><strong>{{app.selectedTrain.latest.speed ? (app.selectedTrain.latest.speed.value | number:1) : '—'}}<small>{{app.selectedTrain.latest.speed ? app.selectedTrain.latest.speed.unit : ''}}</small></strong><span class="metric-status">{{app.selectedTrain.latest.speed ? app.selectedTrain.latest.speed.status : 'No reading'}}</span></article>
+        <article class="metric metric-voltage"><span class="metric-label"><i></i> LINE VOLTAGE</span><strong>{{app.selectedTrain.latest.line_voltage ? (app.selectedTrain.latest.line_voltage.value | number:0) : '—'}}<small>{{app.selectedTrain.latest.line_voltage ? app.selectedTrain.latest.line_voltage.unit : ''}}</small></strong><span class="metric-status">{{app.selectedTrain.latest.line_voltage ? app.selectedTrain.latest.line_voltage.status : 'No reading'}}</span></article>
+        <article class="metric metric-count"><span class="metric-label">HISTORY WINDOW</span><strong>{{app.detailReadings.length}}<small> readings</small></strong><span class="metric-status">Most recent first</span></article>
+      </div>
+      <section class="chart-panel" ng-if="app.detailReadings.length">
+        <div class="section-bar chart-heading"><div><p class="eyebrow">RECENT HISTORY</p><h3>Train measurements</h3></div><span class="chart-key"><i class="key-speed"></i> Speed <i class="key-voltage"></i> Voltage</span></div>
+        <div class="chart-wrap"><canvas id="train-history-chart" aria-label="Speed and line voltage history"></canvas></div>
+      </section>
+      <section class="empty-state detail-empty" ng-if="!app.detailLoading && !app.detailReadings.length"><span class="empty-glyph">◌</span><h3>No history for this train</h3><p>Newly accepted readings appear after their worker finishes.</p></section>
+      <section class="history-section" ng-if="app.detailReadings.length">
+        <div class="section-bar"><div><p class="eyebrow">MEASUREMENTS</p><h3>Recent records</h3></div><span class="result-count">NEWEST FIRST</span></div>
+        <div class="history-list"><div class="history-item" ng-repeat="reading in app.detailReadings track by reading.id"><span class="kind-mark" ng-class="{'kind-voltage': reading.kind === 'line_voltage'}"></span><span class="history-kind">{{reading.kind === 'line_voltage' ? 'Line voltage' : 'Speed'}}</span><strong>{{reading.value | number:reading.kind === 'speed' ? 1 : 0}} <small>{{reading.unit}}</small></strong><span class="history-status">{{reading.status}}</span><time>{{reading.timestamp | date:'MMM d, yyyy HH:mm:ss'}}</time></div></div>
+      </section>
+    </section>
+
+    <section class="upload-page" ng-if="app.page === 'upload'">
+      <div class="upload-intro"><p class="eyebrow">INGESTION / MANUAL ENTRY</p><h1>Upload a reading</h1><p class="lede">Send a single sensor measurement into the processing pipeline.</p></div>
+      <div class="upload-grid">
+        <section class="upload-form-panel">
+          <div class="section-bar"><div><p class="eyebrow">NEW MEASUREMENT</p><h2>Reading payload</h2></div><span class="step-number">01</span></div>
+          <label class="file-drop" for="reading-file"><span class="file-icon">↑</span><span><strong>Choose a JSON file</strong><small>or paste/edit the payload below</small></span><span class="file-action">Browse</span></label>
+          <input id="reading-file" class="visually-hidden" type="file" accept=".json,application/json" file-reader="app.readingText" file-reader-error="app.fileError">
+          <label class="field-label" for="reading-json">JSON PAYLOAD <span>one object, max 4 KiB</span></label>
+          <div class="notice notice-error" ng-if="app.fileError" role="alert">{{app.fileError}}</div>
+          <textarea id="reading-json" class="json-editor" ng-model="app.readingText" spellcheck="false" aria-describedby="upload-message" placeholder="{&#10;  &quot;kind&quot;: &quot;speed&quot;,&#10;  &quot;fleet_id&quot;: &quot;demo-fleet&quot;,&#10;  &quot;asset_id&quot;: &quot;train-01&quot;,&#10;  &quot;timestamp&quot;: &quot;2026-09-24T10:00:00Z&quot;,&#10;  &quot;value&quot;: 132.6&#10;}"></textarea>
+          <div class="editor-footer"><span>{{app.byteLength(app.readingText)}} / 4096 bytes</span><button class="text-button" ng-click="app.loadExample('speed')">Load speed example</button><button class="text-button" ng-click="app.loadExample('line_voltage')">Load voltage example</button></div>
+          <div id="upload-message" class="notice" ng-class="app.submitState.kind" ng-if="app.submitState.message" role="status">{{app.submitState.message}} <span ng-if="app.submitState.id">ID {{app.submitState.id}}</span></div>
+          <button class="button button-dark submit-button" ng-click="app.submitReading()" ng-disabled="app.submitting || !app.readingText"><span>{{app.submitting ? 'Submitting…' : 'Submit reading'}}</span><span ng-if="!app.submitting">↗</span><span class="spinner spinner-light" ng-if="app.submitting"></span></button>
+        </section>
+        <aside class="upload-aside"><div class="aside-index">PAYLOAD GUIDE <span>02</span></div><h3>Required fields</h3><dl class="field-guide"><div><dt>kind</dt><dd><code>speed</code> or <code>line_voltage</code></dd></div><div><dt>fleet_id</dt><dd>Fleet identifier</dd></div><div><dt>asset_id</dt><dd>Train identifier</dd></div><div><dt>timestamp</dt><dd>UTC date/time ending in <code>Z</code></dd></div><div><dt>value</dt><dd>Non-negative numeric value</dd></div></dl><div class="pipeline-note"><span class="live-dot"></span><p>Accepted readings are processed asynchronously. They appear in the fleet view when the matching worker completes.</p></div></aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>IFC / SENSOR HUB</span><span>LOCAL DEVELOPMENT INTERFACE</span></footer>
+
+  <script src="/ui/vendor/angular.min.js"></script>
+  <script src="/ui/vendor/chart.umd.js"></script>
+  <script src="/ui/app.js"></script>
+</body>
+</html>

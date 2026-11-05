@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyifc"
+version = "0.1.0"
+description = "A small decorator-based Infrastructure-from-Code analysis library"
+requires-python = ">=3.11"
+
+[project.scripts]
+pyifc = "pyifc.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "boto3", "jsonschema"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyifc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 130
+
+[tool.ruff.lint]
+select = ["F", "B", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyifc"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B018"]

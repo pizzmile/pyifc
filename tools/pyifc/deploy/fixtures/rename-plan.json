@@ -1,0 +1,254 @@
+[
+ {
+  "address": "aws_apigatewayv2_api.app",
+  "type": "aws_apigatewayv2_api",
+  "name": "app",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_apigatewayv2_integration.ingestion",
+  "type": "aws_apigatewayv2_integration",
+  "name": "ingestion",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_apigatewayv2_integration.query",
+  "type": "aws_apigatewayv2_integration",
+  "name": "query",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_apigatewayv2_route.ingestion",
+  "type": "aws_apigatewayv2_route",
+  "name": "ingestion",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_apigatewayv2_route.query",
+  "type": "aws_apigatewayv2_route",
+  "name": "query",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_apigatewayv2_stage.default",
+  "type": "aws_apigatewayv2_stage",
+  "name": "default",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role.ingestion",
+  "type": "aws_iam_role",
+  "name": "ingestion",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role.line_voltage_parser",
+  "type": "aws_iam_role",
+  "name": "line_voltage_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role.query",
+  "type": "aws_iam_role",
+  "name": "query",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role.speed_parser",
+  "type": "aws_iam_role",
+  "name": "speed_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role_policy.ingestion",
+  "type": "aws_iam_role_policy",
+  "name": "ingestion",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role_policy.line_voltage_parser",
+  "type": "aws_iam_role_policy",
+  "name": "line_voltage_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role_policy.query",
+  "type": "aws_iam_role_policy",
+  "name": "query",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_iam_role_policy.speed_parser",
+  "type": "aws_iam_role_policy",
+  "name": "speed_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_function.ingestion",
+  "type": "aws_lambda_function",
+  "name": "ingestion",
+  "actions": [
+   "update"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_function.line_voltage_parser",
+  "type": "aws_lambda_function",
+  "name": "line_voltage_parser",
+  "actions": [
+   "update"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_function.query",
+  "type": "aws_lambda_function",
+  "name": "query",
+  "actions": [
+   "update"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_function.speed_parser",
+  "type": "aws_lambda_function",
+  "name": "speed_parser",
+  "actions": [
+   "update"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_permission.ingestion",
+  "type": "aws_lambda_permission",
+  "name": "ingestion",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_permission.line_voltage_parser",
+  "type": "aws_lambda_permission",
+  "name": "line_voltage_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_permission.query",
+  "type": "aws_lambda_permission",
+  "name": "query",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_lambda_permission.speed_parser",
+  "type": "aws_lambda_permission",
+  "name": "speed_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_s3_bucket.sensorhub_results",
+  "type": "aws_s3_bucket",
+  "name": "sensorhub_results",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_s3_bucket.sensorhub_staging_v2",
+  "type": "aws_s3_bucket",
+  "name": "sensorhub_staging_v2",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": "aws_s3_bucket.sensorhub_staging"
+ },
+ {
+  "address": "aws_sns_topic.sensorhub_line_voltage",
+  "type": "aws_sns_topic",
+  "name": "sensorhub_line_voltage",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_sns_topic.sensorhub_speed",
+  "type": "aws_sns_topic",
+  "name": "sensorhub_speed",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_sns_topic_subscription.line_voltage_parser",
+  "type": "aws_sns_topic_subscription",
+  "name": "line_voltage_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ },
+ {
+  "address": "aws_sns_topic_subscription.speed_parser",
+  "type": "aws_sns_topic_subscription",
+  "name": "speed_parser",
+  "actions": [
+   "no-op"
+  ],
+  "previous_address": null
+ }
+]

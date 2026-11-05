@@ -1,0 +1,102 @@
+# Vanilla sensor hub on Docker: RustFS (S3), ElasticMQ (SQS), API, two workers, Nginx frontend.
+# No infrastructure is generated; this is the hand-written reference deployment.
+# Run from sensorhub/docker with ./up.sh (or docker compose -f compose.yaml up --build -d).
+name: sensor-hub
+
+x-app: &app
+  image: sensor-hub-demo:local
+  pull_policy: never
+  environment: &app-environment
+    AWS_DEFAULT_REGION: us-east-1
+    S3_ENDPOINT_URL: http://store:9000
+    SQS_ENDPOINT_URL: http://elasticmq:9324
+    AWS_ACCESS_KEY_ID: sensorhub-admin
+    AWS_SECRET_ACCESS_KEY: sensorhub-admin-secret
+    STAGING_BUCKET: sensor-hub-staging
+    RESULTS_BUCKET: sensor-hub-results
+
+services:
+  store:
+    image: rustfs/rustfs@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2
+    environment:
+      RUSTFS_ACCESS_KEY: sensorhub-admin
+      RUSTFS_SECRET_KEY: sensorhub-admin-secret
+    ports:
+      - "${STORE_PORT:-9000}:9000"
+      - "${STORE_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - store-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.6.12
+    ports:
+      - "${QUEUE_PORT:-9324}:9324"
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf:ro
+
+  resources-init:
+    <<: *app
+    command: ["python", "-m", "backend.src.runtime", "init-resources"]
+    depends_on:
+      store:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
+    restart: "no"
+
+  api:
+    <<: *app
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    command: ["python", "-m", "backend.src.runtime", "api"]
+    depends_on:
+      resources-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  speed-worker:
+    <<: *app
+    command: ["python", "-m", "backend.src.runtime", "worker", "speed"]
+    depends_on:
+      resources-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  line-voltage-worker:
+    <<: *app
+    command: ["python", "-m", "backend.src.runtime", "worker", "line_voltage"]
+    depends_on:
+      resources-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    image: sensor-hub-frontend:local
+    environment:
+      API_UPSTREAM: api:8000
+      API_HOST_HEADER: api
+    ports:
+      - "${FRONTEND_PORT:-8000}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  store-data:

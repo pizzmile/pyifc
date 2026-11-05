@@ -1,0 +1,228 @@
+{
+  "capabilities": [
+    {
+      "component_id": "ingestion",
+      "operation": "publish",
+      "provenance": "both",
+      "resource_id": "sensorhub-line-voltage",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 30
+      }
+    },
+    {
+      "component_id": "ingestion",
+      "operation": "publish",
+      "provenance": "both",
+      "resource_id": "sensorhub-speed",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 29
+      }
+    },
+    {
+      "component_id": "ingestion",
+      "operation": "write",
+      "provenance": "both",
+      "resource_id": "sensorhub-staging",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 28
+      }
+    },
+    {
+      "component_id": "line-voltage-parser",
+      "operation": "subscribe",
+      "provenance": "both",
+      "resource_id": "sensorhub-line-voltage",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 73
+      }
+    },
+    {
+      "component_id": "line-voltage-parser",
+      "operation": "write",
+      "provenance": "both",
+      "resource_id": "sensorhub-results",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 75
+      }
+    },
+    {
+      "component_id": "line-voltage-parser",
+      "operation": "read",
+      "provenance": "both",
+      "resource_id": "sensorhub-staging",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 74
+      }
+    },
+    {
+      "component_id": "query",
+      "operation": "list",
+      "provenance": "both",
+      "resource_id": "sensorhub-results",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 91
+      }
+    },
+    {
+      "component_id": "query",
+      "operation": "read",
+      "provenance": "both",
+      "resource_id": "sensorhub-results",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 92
+      }
+    },
+    {
+      "component_id": "speed-parser",
+      "operation": "write",
+      "provenance": "both",
+      "resource_id": "sensorhub-results",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 58
+      }
+    },
+    {
+      "component_id": "speed-parser",
+      "operation": "subscribe",
+      "provenance": "both",
+      "resource_id": "sensorhub-speed",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 56
+      }
+    },
+    {
+      "component_id": "speed-parser",
+      "operation": "read",
+      "provenance": "both",
+      "resource_id": "sensorhub-staging",
+      "source": {
+        "column": 1,
+        "file": "app.py",
+        "line": 57
+      }
+    }
+  ],
+  "components": [
+    {
+      "callable_ref": "app:ingest_reading",
+      "id": "ingestion",
+      "kind": "http_handler",
+      "properties": {
+        "method": "POST",
+        "path": "/readings"
+      },
+      "source": {
+        "column": 0,
+        "file": "app.py",
+        "line": 31
+      },
+      "trigger": "http:POST /readings"
+    },
+    {
+      "callable_ref": "app:parse_line_voltage",
+      "id": "line-voltage-parser",
+      "kind": "worker",
+      "properties": {},
+      "source": {
+        "column": 0,
+        "file": "app.py",
+        "line": 76
+      },
+      "trigger": "topic:sensorhub-line-voltage"
+    },
+    {
+      "callable_ref": "app:query_readings",
+      "id": "query",
+      "kind": "http_handler",
+      "properties": {
+        "method": "GET",
+        "path": "/readings"
+      },
+      "source": {
+        "column": 0,
+        "file": "app.py",
+        "line": 93
+      },
+      "trigger": "http:GET /readings"
+    },
+    {
+      "callable_ref": "app:parse_speed",
+      "id": "speed-parser",
+      "kind": "worker",
+      "properties": {},
+      "source": {
+        "column": 0,
+        "file": "app.py",
+        "line": 59
+      },
+      "trigger": "topic:sensorhub-speed"
+    }
+  ],
+  "name": "sensorhub",
+  "resources": [
+    {
+      "id": "sensorhub-line-voltage",
+      "kind": "topic",
+      "properties": {},
+      "stateful": false,
+      "use_signature": [
+        "ingestion>publish",
+        "line-voltage-parser>subscribe"
+      ]
+    },
+    {
+      "id": "sensorhub-results",
+      "kind": "object_store",
+      "properties": {},
+      "stateful": true,
+      "use_signature": [
+        "line-voltage-parser>write",
+        "query>list",
+        "query>read",
+        "speed-parser>write"
+      ]
+    },
+    {
+      "id": "sensorhub-speed",
+      "kind": "topic",
+      "properties": {},
+      "stateful": false,
+      "use_signature": [
+        "ingestion>publish",
+        "speed-parser>subscribe"
+      ]
+    },
+    {
+      "id": "sensorhub-staging",
+      "kind": "object_store",
+      "properties": {},
+      "stateful": true,
+      "use_signature": [
+        "ingestion>write",
+        "line-voltage-parser>read",
+        "speed-parser>read"
+      ]
+    }
+  ],
+  "schema_version": "1.3"
+}

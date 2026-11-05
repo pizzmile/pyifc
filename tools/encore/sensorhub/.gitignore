@@ -1,0 +1,15 @@
+# Encore build output and generated wrappers
+/.encore
+encore.gen.go
+encore.gen.cue
+/encore.gen
+# Local state and tooling
+node_modules/
+dist/
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# deploy/: generated Terraform, infra config, state and image-build output
+/deploy/generated/
+__pycache__/

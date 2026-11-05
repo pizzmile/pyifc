@@ -1,0 +1,4 @@
+name: sensorhub
+services:
+  - match: services/*.py
+    start: env PYTHONPATH=. python $SERVICE_PATH

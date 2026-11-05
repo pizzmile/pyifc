@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://infra-from-code.example/schema/readings-response.schema.json",
+  "title": "Recent processed readings",
+  "type": "object",
+  "required": ["readings"],
+  "additionalProperties": false,
+  "properties": {
+    "readings": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "processed-reading.schema.json" }
+    }
+  }
+}

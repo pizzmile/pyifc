@@ -1,0 +1,28 @@
+{
+  "data": {
+    "aws_iam_policy_document": {
+      "workaround_topic_check": {
+        "statement": [
+          {
+            "sid": "topic_check",
+            "effect": "Allow",
+            "actions": ["sns:GetTopicAttributes"],
+            "resources": [
+              "${aws_sns_topic.sensorhub_line_voltage.arn}",
+              "${aws_sns_topic.sensorhub_speed.arn}"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "resource": {
+    "aws_iam_user_policy": {
+      "all_services_topic_check": {
+        "name": "workaround-02-topic-check",
+        "user": "${aws_iam_user.all_services.name}",
+        "policy": "${data.aws_iam_policy_document.workaround_topic_check.json}"
+      }
+    }
+  }
+}

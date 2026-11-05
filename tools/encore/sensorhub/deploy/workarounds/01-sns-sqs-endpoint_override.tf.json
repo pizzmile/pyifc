@@ -1,0 +1,8 @@
+{
+  "locals": {
+    "workaround_env": [
+      "AWS_ENDPOINT_URL_SNS=http://floci-encore:4566",
+      "AWS_ENDPOINT_URL_SQS=http://floci-encore:4566"
+    ]
+  }
+}

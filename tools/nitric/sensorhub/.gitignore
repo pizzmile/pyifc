@@ -1,0 +1,16 @@
+.nitric/
+cdktf.out/
+__pycache__/
+*.pyc
+venv/
+.venv/
+node_modules/
+dist/
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.d/
+deploy/.work/
+*.tfplan
+.pulumi/

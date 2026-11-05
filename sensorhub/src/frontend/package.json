@@ -1,0 +1,13 @@
+{
+  "name": "sensor-hub-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AngularJS dashboard for the train sensor hub demo",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "angular": "1.8.3",
+    "chart.js": "4.5.0"
+  }
+}

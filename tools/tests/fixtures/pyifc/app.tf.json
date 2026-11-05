@@ -1,0 +1,305 @@
+{
+  "output": {
+    "api_endpoint": {
+      "value": "${aws_apigatewayv2_api.app.api_endpoint}"
+    },
+    "api_id": {
+      "value": "${aws_apigatewayv2_api.app.id}"
+    }
+  },
+  "provider": {
+    "aws": {
+      "access_key": "floci",
+      "endpoints": {
+        "apigatewayv2": "http://localhost:4572",
+        "iam": "http://localhost:4572",
+        "lambda": "http://localhost:4572",
+        "s3": "http://localhost:4572",
+        "sns": "http://localhost:4572",
+        "sqs": "http://localhost:4572",
+        "sts": "http://localhost:4572"
+      },
+      "region": "us-east-1",
+      "s3_use_path_style": true,
+      "secret_key": "floci",
+      "skip_credentials_validation": true,
+      "skip_metadata_api_check": true,
+      "skip_region_validation": true,
+      "skip_requesting_account_id": true
+    }
+  },
+  "resource": {
+    "aws_apigatewayv2_api": {
+      "app": {
+        "name": "${var.name_prefix}",
+        "protocol_type": "HTTP"
+      }
+    },
+    "aws_apigatewayv2_integration": {
+      "ingestion": {
+        "api_id": "${aws_apigatewayv2_api.app.id}",
+        "integration_type": "AWS_PROXY",
+        "integration_uri": "${aws_lambda_function.ingestion.invoke_arn}",
+        "payload_format_version": "2.0"
+      },
+      "query": {
+        "api_id": "${aws_apigatewayv2_api.app.id}",
+        "integration_type": "AWS_PROXY",
+        "integration_uri": "${aws_lambda_function.query.invoke_arn}",
+        "payload_format_version": "2.0"
+      }
+    },
+    "aws_apigatewayv2_route": {
+      "ingestion": {
+        "api_id": "${aws_apigatewayv2_api.app.id}",
+        "route_key": "POST /readings",
+        "target": "integrations/${aws_apigatewayv2_integration.ingestion.id}"
+      },
+      "query": {
+        "api_id": "${aws_apigatewayv2_api.app.id}",
+        "route_key": "GET /readings",
+        "target": "integrations/${aws_apigatewayv2_integration.query.id}"
+      }
+    },
+    "aws_apigatewayv2_stage": {
+      "default": {
+        "api_id": "${aws_apigatewayv2_api.app.id}",
+        "auto_deploy": true,
+        "name": "$default"
+      }
+    },
+    "aws_iam_role": {
+      "ingestion": {
+        "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}]}",
+        "name": "${var.name_prefix}-ingestion"
+      },
+      "line_voltage_parser": {
+        "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}]}",
+        "name": "${var.name_prefix}-line_voltage_parser"
+      },
+      "query": {
+        "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}]}",
+        "name": "${var.name_prefix}-query"
+      },
+      "speed_parser": {
+        "assume_role_policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}]}",
+        "name": "${var.name_prefix}-speed_parser"
+      }
+    },
+    "aws_iam_role_policy": {
+      "ingestion": {
+        "name": "${var.name_prefix}-ingestion-access",
+        "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_sns_topic.sensorhub_line_voltage.arn}\"]},{\"Action\":[\"sns:Publish\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_sns_topic.sensorhub_speed.arn}\"]},{\"Action\":[\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_staging.arn}/*\"]},{\"Action\":[\"logs:CreateLogGroup\",\"logs:CreateLogStream\",\"logs:PutLogEvents\"],\"Effect\":\"Allow\",\"Resource\":[\"*\"]}]}",
+        "role": "${aws_iam_role.ingestion.id}"
+      },
+      "line_voltage_parser": {
+        "name": "${var.name_prefix}-line_voltage_parser-access",
+        "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_results.arn}/*\"]},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_staging.arn}/*\"]},{\"Action\":[\"logs:CreateLogGroup\",\"logs:CreateLogStream\",\"logs:PutLogEvents\"],\"Effect\":\"Allow\",\"Resource\":[\"*\"]}]}",
+        "role": "${aws_iam_role.line_voltage_parser.id}"
+      },
+      "query": {
+        "name": "${var.name_prefix}-query-access",
+        "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_results.arn}\"]},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_results.arn}/*\"]},{\"Action\":[\"logs:CreateLogGroup\",\"logs:CreateLogStream\",\"logs:PutLogEvents\"],\"Effect\":\"Allow\",\"Resource\":[\"*\"]}]}",
+        "role": "${aws_iam_role.query.id}"
+      },
+      "speed_parser": {
+        "name": "${var.name_prefix}-speed_parser-access",
+        "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_results.arn}/*\"]},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":[\"${aws_s3_bucket.sensorhub_staging.arn}/*\"]},{\"Action\":[\"logs:CreateLogGroup\",\"logs:CreateLogStream\",\"logs:PutLogEvents\"],\"Effect\":\"Allow\",\"Resource\":[\"*\"]}]}",
+        "role": "${aws_iam_role.speed_parser.id}"
+      }
+    },
+    "aws_lambda_function": {
+      "ingestion": {
+        "architectures": [
+          "arm64"
+        ],
+        "environment": {
+          "variables": {
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "PYIFC_APP_MODULE": "app",
+            "PYIFC_BUCKET_SENSORHUB_STAGING": "${aws_s3_bucket.sensorhub_staging.id}",
+            "PYIFC_COMPONENT": "ingestion",
+            "PYIFC_TARGET": "aws",
+            "PYIFC_TOPIC_SENSORHUB_LINE_VOLTAGE": "${aws_sns_topic.sensorhub_line_voltage.arn}",
+            "PYIFC_TOPIC_SENSORHUB_SPEED": "${aws_sns_topic.sensorhub_speed.arn}",
+            "S3_ENDPOINT_URL": "http://localhost:4572",
+            "SNS_ENDPOINT_URL": "http://localhost:4572",
+            "SQS_ENDPOINT_URL": "http://localhost:4572"
+          }
+        },
+        "filename": "${var.lambda_package}",
+        "function_name": "${var.name_prefix}-ingestion",
+        "handler": "pyifc.runtime.entry.handler",
+        "role": "${aws_iam_role.ingestion.arn}",
+        "runtime": "python3.12",
+        "source_code_hash": "${filebase64sha256(var.lambda_package)}",
+        "timeout": 30
+      },
+      "line_voltage_parser": {
+        "architectures": [
+          "arm64"
+        ],
+        "environment": {
+          "variables": {
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "PYIFC_APP_MODULE": "app",
+            "PYIFC_BUCKET_SENSORHUB_RESULTS": "${aws_s3_bucket.sensorhub_results.id}",
+            "PYIFC_BUCKET_SENSORHUB_STAGING": "${aws_s3_bucket.sensorhub_staging.id}",
+            "PYIFC_COMPONENT": "line-voltage-parser",
+            "PYIFC_TARGET": "aws",
+            "PYIFC_TOPIC_SENSORHUB_LINE_VOLTAGE": "${aws_sns_topic.sensorhub_line_voltage.arn}",
+            "S3_ENDPOINT_URL": "http://localhost:4572",
+            "SNS_ENDPOINT_URL": "http://localhost:4572",
+            "SQS_ENDPOINT_URL": "http://localhost:4572"
+          }
+        },
+        "filename": "${var.lambda_package}",
+        "function_name": "${var.name_prefix}-line_voltage_parser",
+        "handler": "pyifc.runtime.entry.handler",
+        "role": "${aws_iam_role.line_voltage_parser.arn}",
+        "runtime": "python3.12",
+        "source_code_hash": "${filebase64sha256(var.lambda_package)}",
+        "timeout": 30
+      },
+      "query": {
+        "architectures": [
+          "arm64"
+        ],
+        "environment": {
+          "variables": {
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "PYIFC_APP_MODULE": "app",
+            "PYIFC_BUCKET_SENSORHUB_RESULTS": "${aws_s3_bucket.sensorhub_results.id}",
+            "PYIFC_COMPONENT": "query",
+            "PYIFC_TARGET": "aws",
+            "S3_ENDPOINT_URL": "http://localhost:4572",
+            "SNS_ENDPOINT_URL": "http://localhost:4572",
+            "SQS_ENDPOINT_URL": "http://localhost:4572"
+          }
+        },
+        "filename": "${var.lambda_package}",
+        "function_name": "${var.name_prefix}-query",
+        "handler": "pyifc.runtime.entry.handler",
+        "role": "${aws_iam_role.query.arn}",
+        "runtime": "python3.12",
+        "source_code_hash": "${filebase64sha256(var.lambda_package)}",
+        "timeout": 30
+      },
+      "speed_parser": {
+        "architectures": [
+          "arm64"
+        ],
+        "environment": {
+          "variables": {
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "PYIFC_APP_MODULE": "app",
+            "PYIFC_BUCKET_SENSORHUB_RESULTS": "${aws_s3_bucket.sensorhub_results.id}",
+            "PYIFC_BUCKET_SENSORHUB_STAGING": "${aws_s3_bucket.sensorhub_staging.id}",
+            "PYIFC_COMPONENT": "speed-parser",
+            "PYIFC_TARGET": "aws",
+            "PYIFC_TOPIC_SENSORHUB_SPEED": "${aws_sns_topic.sensorhub_speed.arn}",
+            "S3_ENDPOINT_URL": "http://localhost:4572",
+            "SNS_ENDPOINT_URL": "http://localhost:4572",
+            "SQS_ENDPOINT_URL": "http://localhost:4572"
+          }
+        },
+        "filename": "${var.lambda_package}",
+        "function_name": "${var.name_prefix}-speed_parser",
+        "handler": "pyifc.runtime.entry.handler",
+        "role": "${aws_iam_role.speed_parser.arn}",
+        "runtime": "python3.12",
+        "source_code_hash": "${filebase64sha256(var.lambda_package)}",
+        "timeout": 30
+      }
+    },
+    "aws_lambda_permission": {
+      "ingestion": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "${aws_lambda_function.ingestion.function_name}",
+        "principal": "apigateway.amazonaws.com",
+        "source_arn": "${aws_apigatewayv2_api.app.execution_arn}/*/*",
+        "statement_id": "AllowApiGatewayIngestion"
+      },
+      "line_voltage_parser": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "${aws_lambda_function.line_voltage_parser.function_name}",
+        "principal": "sns.amazonaws.com",
+        "source_arn": "${aws_sns_topic.sensorhub_line_voltage.arn}",
+        "statement_id": "AllowSnsLineVoltageParser"
+      },
+      "query": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "${aws_lambda_function.query.function_name}",
+        "principal": "apigateway.amazonaws.com",
+        "source_arn": "${aws_apigatewayv2_api.app.execution_arn}/*/*",
+        "statement_id": "AllowApiGatewayQuery"
+      },
+      "speed_parser": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "${aws_lambda_function.speed_parser.function_name}",
+        "principal": "sns.amazonaws.com",
+        "source_arn": "${aws_sns_topic.sensorhub_speed.arn}",
+        "statement_id": "AllowSnsSpeedParser"
+      }
+    },
+    "aws_s3_bucket": {
+      "sensorhub_results": {
+        "bucket": "${var.name_prefix}-results",
+        "lifecycle": {
+          "prevent_destroy": true
+        }
+      },
+      "sensorhub_staging": {
+        "bucket": "${var.name_prefix}-staging",
+        "lifecycle": {
+          "prevent_destroy": true
+        }
+      }
+    },
+    "aws_sns_topic": {
+      "sensorhub_line_voltage": {
+        "name": "${var.name_prefix}-line-voltage"
+      },
+      "sensorhub_speed": {
+        "name": "${var.name_prefix}-speed"
+      }
+    },
+    "aws_sns_topic_subscription": {
+      "line_voltage_parser": {
+        "depends_on": [
+          "aws_lambda_permission.line_voltage_parser"
+        ],
+        "endpoint": "${aws_lambda_function.line_voltage_parser.arn}",
+        "protocol": "lambda",
+        "topic_arn": "${aws_sns_topic.sensorhub_line_voltage.arn}"
+      },
+      "speed_parser": {
+        "depends_on": [
+          "aws_lambda_permission.speed_parser"
+        ],
+        "endpoint": "${aws_lambda_function.speed_parser.arn}",
+        "protocol": "lambda",
+        "topic_arn": "${aws_sns_topic.sensorhub_speed.arn}"
+      }
+    }
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "hashicorp/aws",
+        "version": "~> 6.0"
+      }
+    },
+    "required_version": ">= 1.10, < 2.0"
+  },
+  "variable": {
+    "lambda_package": {
+      "default": "sensorhub.zip",
+      "type": "string"
+    },
+    "name_prefix": {
+      "default": "sensorhub",
+      "type": "string"
+    }
+  }
+}

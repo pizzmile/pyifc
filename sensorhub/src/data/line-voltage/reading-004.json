@@ -1,0 +1,7 @@
+{
+  "kind": "line_voltage",
+  "fleet_id": "fleet-demo",
+  "asset_id": "train-002",
+  "timestamp": "2026-09-24T08:00:00Z",
+  "value": 230.4
+}

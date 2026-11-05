@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://infra-from-code.example/schema/processed-reading.schema.json",
+  "title": "Processed train reading",
+  "type": "object",
+  "required": ["id", "kind", "fleet_id", "asset_id", "timestamp", "value", "unit", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "kind": { "enum": ["speed", "line_voltage"] },
+    "fleet_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "asset_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "value": { "type": "number", "minimum": 0 },
+    "unit": { "enum": ["km/h", "V"] },
+    "status": { "enum": ["stopped", "moving", "no_voltage_observed", "voltage_observed"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "speed" } }, "required": ["kind"] },
+      "then": { "properties": { "unit": { "const": "km/h" }, "status": { "enum": ["stopped", "moving"] } } },
+      "else": { "properties": { "unit": { "const": "V" }, "status": { "enum": ["no_voltage_observed", "voltage_observed"] } } }
+    },
+    {
+      "if": { "properties": { "value": { "const": 0 } }, "required": ["value"] },
+      "then": { "properties": { "status": { "enum": ["stopped", "no_voltage_observed"] } } },
+      "else": { "properties": { "status": { "enum": ["moving", "voltage_observed"] } } }
+    }
+  ]
+}

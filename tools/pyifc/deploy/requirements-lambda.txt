@@ -1,0 +1,11 @@
+# Installed into the Lambda package for python3.12 / arm64 (see package.py).
+# boto3 and botocore come with the Lambda runtime. These are the dependencies of
+# sensorhub_logic/schemas.py (jsonschema and what it imports).
+attrs==26.1.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.9.1
+# needed by referencing on python3.12; pip evaluates markers for the build host (3.14), so it must be listed
+
+typing_extensions==4.16.0

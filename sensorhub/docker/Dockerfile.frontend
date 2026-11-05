@@ -1,0 +1,18 @@
+# Build context: sensorhub/ (see compose.yaml)
+FROM node:24-alpine AS frontend-build
+
+WORKDIR /frontend
+COPY src/frontend/package.json src/frontend/package-lock.json ./
+RUN npm ci
+COPY src/frontend/build.mjs ./
+COPY src/frontend/src ./src
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+ENV NGINX_ENVSUBST_FILTER="^(API_UPSTREAM|API_HOST_HEADER)$"
+
+COPY src/frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=frontend-build /frontend/dist /usr/share/nginx/html/ui
+
+EXPOSE 80

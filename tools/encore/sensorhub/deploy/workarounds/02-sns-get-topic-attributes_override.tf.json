@@ -1,0 +1,5 @@
+{
+  "locals": {
+    "workaround_deps": ["${aws_iam_user_policy.all_services_topic_check.id}"]
+  }
+}

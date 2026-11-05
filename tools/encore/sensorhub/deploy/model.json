@@ -1,0 +1,484 @@
+{
+  "module_path": "encore.app",
+  "app_revision": "a290fd52c254b061b98c0b6f601a0c47e6cf890d",
+  "uncommitted_changes": true,
+  "decls": [
+    {
+      "id": 0,
+      "name": "Job",
+      "type": {
+        "struct": {
+          "fields": [
+            {
+              "typ": {
+                "builtin": "STRING"
+              },
+              "name": "ID",
+              "doc": "",
+              "json_name": "id",
+              "optional": false,
+              "query_string_name": "id",
+              "raw_tag": "json:\"id\"",
+              "tags": [
+                {
+                  "key": "json",
+                  "name": "id",
+                  "options": [
+                  ]
+                }
+              ]
+            },
+            {
+              "typ": {
+                "builtin": "STRING"
+              },
+              "name": "StagingKey",
+              "doc": "",
+              "json_name": "staging_key",
+              "optional": false,
+              "query_string_name": "staging_key",
+              "raw_tag": "json:\"staging_key\"",
+              "tags": [
+                {
+                  "key": "json",
+                  "name": "staging_key",
+                  "options": [
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "type_params": [
+      ],
+      "doc": "Job is the queue message: a reference to the staged object, not the reading.\n",
+      "loc": {
+        "pkg_path": "encore.app/reading",
+        "pkg_name": "reading",
+        "filename": "reading.go",
+        "start_pos": 1358,
+        "end_pos": 1443,
+        "src_line_start": 50,
+        "src_line_end": 50,
+        "src_col_start": 6,
+        "src_col_end": 6
+      }
+    }
+  ],
+  "pkgs": [
+    {
+      "rel_path": "ingestion",
+      "name": "ingestion",
+      "doc": "Package ingestion is the HTTP entry: POST /readings. It may write the\nstaging bucket and publish to both topics, nothing else.\n",
+      "service_name": "ingestion",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+        {
+          "id": 1,
+          "filepath": "ingestion/ingestion.go",
+          "start_pos": 765,
+          "end_pos": 824,
+          "src_line_start": 32,
+          "src_line_end": 32,
+          "src_col_start": 1,
+          "src_col_end": 60,
+          "rpc_def": {
+            "service_name": "ingestion",
+            "rpc_name": "PostReadings",
+            "context": "func PostReadings(w http.ResponseWriter, req *http.Request) {\n\tbody, err := io.ReadAll(io.LimitReader(req.Body, reading.MaxBodyBytes+1))\n\tstatus, code, message := checkRequest(req.Header.Get(\"Content-Type\"), body, err)\n\tvar kind reading.Kind\n\tif status == 0 {\n\t\tkind, err = reading.ValidateUpload(body)\n\t\tstatus, code, message = uploadError(err)\n\t}\n\tif status != 0 {\n\t\twriteJSON(w, status, map[string]any{\"error\": map[string]string{\"code\": code, \"message\": message}})\n\t\treturn\n\t}\n\n\tid, err := newUUID()\n\tif err != nil {\n\t\twriteJSON(w, 503, errBody(\"staging_unavailable\", \"The reading could not be staged.\"))\n\t\treturn\n\t}\n\tjob := \u0026reading.Job{ID: id, StagingKey: \"raw/\" + id + \".json\"}\n\tif err := stage(req.Context(), job.StagingKey, body); err != nil {\n\t\trlog.Error(\"staging write failed\", \"reading_id\", id, \"err\", err)\n\t\twriteJSON(w, 503, errBody(\"staging_unavailable\", \"The reading could not be staged.\"))\n\t\treturn\n\t}\n\ttopic := speedJobs\n\tif kind == reading.LineVoltage {\n\t\ttopic = lineVoltageJobs\n\t}\n\tif _, err := topic.Publish(req.Context(), job); err != nil {\n\t\trlog.Error(\"publish failed\", \"reading_id\", id, \"staging_key\", job.StagingKey, \"err\", err)\n\t\twriteJSON(w, 503, errBody(\"publishing_unavailable\", \"The reading was staged but could not be queued.\"))\n\t\treturn\n\t}\n\twriteJSON(w, http.StatusAccepted, map[string]string{\"id\": id})\n}"
+          }
+        }
+      ]
+    },
+    {
+      "rel_path": "query",
+      "name": "query",
+      "doc": "Package query serves GET /readings. It may only list and read the results\nbucket.\n",
+      "service_name": "query",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+        {
+          "id": 2,
+          "filepath": "query/query.go",
+          "start_pos": 631,
+          "end_pos": 689,
+          "src_line_start": 40,
+          "src_line_end": 40,
+          "src_col_start": 1,
+          "src_col_end": 59,
+          "rpc_def": {
+            "service_name": "query",
+            "rpc_name": "GetReadings",
+            "context": "func GetReadings(w http.ResponseWriter, req *http.Request) {\n\tlimit, fleetID, assetID, err := parseQuery(req)\n\tif err != nil {\n\t\tcode, message := \"invalid_limit\", \"The limit query parameter must be an integer.\"\n\t\tif errors.Is(err, errFilter) {\n\t\t\tcode, message = \"invalid_train_filter\", \"fleet_id and asset_id must be provided together and must not be empty.\"\n\t\t}\n\t\twriteJSON(w, 400, errBody(code, message))\n\t\treturn\n\t}\n\tvar items []reading.Processed\n\tfor entry, err := range results.List(req.Context(), \u0026objects.Query{}) {\n\t\tif err != nil {\n\t\t\trlog.Error(\"list results failed\", \"err\", err)\n\t\t\twriteJSON(w, 503, errBody(\"results_unavailable\", \"The processed readings could not be retrieved.\"))\n\t\t\treturn\n\t\t}\n\t\tbody, err := io.ReadAll(results.Download(req.Context(), entry.Name))\n\t\tif err != nil {\n\t\t\trlog.Error(\"read result failed\", \"key\", entry.Name, \"err\", err)\n\t\t\twriteJSON(w, 503, errBody(\"results_unavailable\", \"The processed readings could not be retrieved.\"))\n\t\t\treturn\n\t\t}\n\t\tvar item reading.Processed\n\t\tif json.Unmarshal(body, \u0026item) != nil {\n\t\t\tcontinue // skip objects that are not processed records\n\t\t}\n\t\titems = append(items, item)\n\t}\n\twriteJSON(w, 200, map[string]any{\"readings\": Select(items, limit, fleetID, assetID)})\n}"
+          }
+        }
+      ]
+    },
+    {
+      "rel_path": "reading",
+      "name": "reading",
+      "doc": "Package reading holds what all services share: the reading types, the JSON\nschemas (copied from sensorhub/src/backend/schema) and the validation and\nnormalization rules from sensorhub/doc/SPEC.md. It declares no Encore\nresources and no APIs, so it is a plain library package, not a service.\n",
+      "service_name": "",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+      ]
+    },
+    {
+      "rel_path": "resources",
+      "name": "resources",
+      "doc": "Package resources declares every bucket and topic of the sensor hub in one\nplace. It has no API, so it is not a service; each service reaches the\nresources it needs through a typed reference (BucketRef / TopicRef), and\nEncore derives that service's access from the reference's permission type.\n",
+      "service_name": "",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+      ]
+    },
+    {
+      "rel_path": "speedparser",
+      "name": "speedparser",
+      "doc": "Package speedparser consumes only the speed topic. It may read the staging\nbucket and write the results bucket.\n",
+      "service_name": "speedparser",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+        {
+          "id": 3,
+          "filepath": "speedparser/speedparser.go",
+          "start_pos": 442,
+          "end_pos": 648,
+          "src_line_start": 21,
+          "src_line_end": 24,
+          "src_col_start": 31,
+          "src_col_end": 2,
+          "pubsub_subscriber": {
+            "topic_name": "sensorhub-speed",
+            "subscriber_name": "speed-parser",
+            "service_name": "speedparser",
+            "context": "pubsub.NewSubscription(resources.SpeedJobs, \"speed-parser\", pubsub.SubscriptionConfig[*reading.Job]{\n\tHandler:     handle,\n\tRetryPolicy: \u0026pubsub.RetryPolicy{MaxRetries: 3, MinBackoff: time.Second, MaxBackoff: 5 * time.Second},\n})"
+          }
+        }
+      ]
+    },
+    {
+      "rel_path": "voltageparser",
+      "name": "voltageparser",
+      "doc": "Package voltageparser consumes only the line-voltage topic. It may read the staging\nbucket and write the results bucket.\n",
+      "service_name": "voltageparser",
+      "secrets": [
+      ],
+      "rpc_calls": [
+      ],
+      "trace_nodes": [
+        {
+          "id": 4,
+          "filepath": "voltageparser/voltageparser.go",
+          "start_pos": 453,
+          "end_pos": 672,
+          "src_line_start": 21,
+          "src_line_end": 24,
+          "src_col_start": 31,
+          "src_col_end": 2,
+          "pubsub_subscriber": {
+            "topic_name": "sensorhub-line-voltage",
+            "subscriber_name": "line-voltage-parser",
+            "service_name": "voltageparser",
+            "context": "pubsub.NewSubscription(resources.LineVoltageJobs, \"line-voltage-parser\", pubsub.SubscriptionConfig[*reading.Job]{\n\tHandler:     handle,\n\tRetryPolicy: \u0026pubsub.RetryPolicy{MaxRetries: 3, MinBackoff: time.Second, MaxBackoff: 5 * time.Second},\n})"
+          }
+        }
+      ]
+    }
+  ],
+  "svcs": [
+    {
+      "name": "ingestion",
+      "rel_path": "ingestion",
+      "rpcs": [
+        {
+          "name": "PostReadings",
+          "service_name": "ingestion",
+          "access_type": "PUBLIC",
+          "proto": "RAW",
+          "loc": {
+            "pkg_path": "encore.app/ingestion",
+            "pkg_name": "ingestion",
+            "filename": "ingestion.go",
+            "start_pos": 765,
+            "end_pos": 2104,
+            "src_line_start": 32,
+            "src_line_end": 32,
+            "src_col_start": 1,
+            "src_col_end": 1
+          },
+          "path": {
+            "segments": [
+              {
+                "type": "LITERAL",
+                "value": "readings",
+                "value_type": "STRING"
+              }
+            ],
+            "type": "URL"
+          },
+          "http_methods": [
+            "POST"
+          ],
+          "tags": [
+          ],
+          "sensitive": false,
+          "allow_unauthenticated": true,
+          "expose": {
+            "api-gateway": {
+
+            }
+          },
+          "streaming_request": false,
+          "streaming_response": false
+        }
+      ],
+      "migrations": [
+      ],
+      "databases": [
+      ],
+      "has_config": false,
+      "buckets": [
+        {
+          "bucket": "sensorhub-staging",
+          "operations": [
+            "WRITE_OBJECT"
+          ]
+        }
+      ],
+      "metrics": [
+      ]
+    },
+    {
+      "name": "query",
+      "rel_path": "query",
+      "rpcs": [
+        {
+          "name": "GetReadings",
+          "service_name": "query",
+          "access_type": "PUBLIC",
+          "proto": "RAW",
+          "loc": {
+            "pkg_path": "encore.app/query",
+            "pkg_name": "query",
+            "filename": "query.go",
+            "start_pos": 631,
+            "end_pos": 1867,
+            "src_line_start": 40,
+            "src_line_end": 40,
+            "src_col_start": 1,
+            "src_col_end": 1
+          },
+          "path": {
+            "segments": [
+              {
+                "type": "LITERAL",
+                "value": "readings",
+                "value_type": "STRING"
+              }
+            ],
+            "type": "URL"
+          },
+          "http_methods": [
+            "GET"
+          ],
+          "tags": [
+          ],
+          "sensitive": false,
+          "allow_unauthenticated": true,
+          "expose": {
+            "api-gateway": {
+
+            }
+          },
+          "streaming_request": false,
+          "streaming_response": false
+        }
+      ],
+      "migrations": [
+      ],
+      "databases": [
+      ],
+      "has_config": false,
+      "buckets": [
+        {
+          "bucket": "sensorhub-results",
+          "operations": [
+            "LIST_OBJECTS",
+            "READ_OBJECT_CONTENTS"
+          ]
+        }
+      ],
+      "metrics": [
+      ]
+    },
+    {
+      "name": "speedparser",
+      "rel_path": "speedparser",
+      "rpcs": [
+      ],
+      "migrations": [
+      ],
+      "databases": [
+      ],
+      "has_config": false,
+      "buckets": [
+        {
+          "bucket": "sensorhub-staging",
+          "operations": [
+            "READ_OBJECT_CONTENTS"
+          ]
+        },
+        {
+          "bucket": "sensorhub-results",
+          "operations": [
+            "WRITE_OBJECT"
+          ]
+        }
+      ],
+      "metrics": [
+      ]
+    },
+    {
+      "name": "voltageparser",
+      "rel_path": "voltageparser",
+      "rpcs": [
+      ],
+      "migrations": [
+      ],
+      "databases": [
+      ],
+      "has_config": false,
+      "buckets": [
+        {
+          "bucket": "sensorhub-staging",
+          "operations": [
+            "READ_OBJECT_CONTENTS"
+          ]
+        },
+        {
+          "bucket": "sensorhub-results",
+          "operations": [
+            "WRITE_OBJECT"
+          ]
+        }
+      ],
+      "metrics": [
+      ]
+    }
+  ],
+  "cron_jobs": [
+  ],
+  "pubsub_topics": [
+    {
+      "name": "sensorhub-speed",
+      "doc": "Topics: one per kind. Encore has no raw queue; a topic with one subscription\nis the closest equivalent.\n",
+      "message_type": {
+        "named": {
+          "id": 0,
+          "type_arguments": [
+          ]
+        }
+      },
+      "delivery_guarantee": "AT_LEAST_ONCE",
+      "ordering_key": "",
+      "publishers": [
+        {
+          "service_name": "ingestion"
+        }
+      ],
+      "subscriptions": [
+        {
+          "name": "speed-parser",
+          "service_name": "speedparser",
+          "ack_deadline": "30000000000",
+          "message_retention": "604800000000000",
+          "retry_policy": {
+            "min_backoff": "1000000000",
+            "max_backoff": "5000000000",
+            "max_retries": "3"
+          },
+          "max_concurrency": 100
+        }
+      ]
+    },
+    {
+      "name": "sensorhub-line-voltage",
+      "doc": "Topics: one per kind. Encore has no raw queue; a topic with one subscription\nis the closest equivalent.\n",
+      "message_type": {
+        "named": {
+          "id": 0,
+          "type_arguments": [
+          ]
+        }
+      },
+      "delivery_guarantee": "AT_LEAST_ONCE",
+      "ordering_key": "",
+      "publishers": [
+        {
+          "service_name": "ingestion"
+        }
+      ],
+      "subscriptions": [
+        {
+          "name": "line-voltage-parser",
+          "service_name": "voltageparser",
+          "ack_deadline": "30000000000",
+          "message_retention": "604800000000000",
+          "retry_policy": {
+            "min_backoff": "1000000000",
+            "max_backoff": "5000000000",
+            "max_retries": "3"
+          },
+          "max_concurrency": 100
+        }
+      ]
+    }
+  ],
+  "middleware": [
+  ],
+  "cache_clusters": [
+  ],
+  "experiments": [
+  ],
+  "metrics": [
+  ],
+  "sql_databases": [
+  ],
+  "gateways": [
+    {
+      "encore_name": "api-gateway"
+    }
+  ],
+  "language": "GO",
+  "buckets": [
+    {
+      "name": "sensorhub-staging",
+      "doc": "Buckets: raw uploads and normalized results.\n",
+      "versioned": false,
+      "public": false
+    },
+    {
+      "name": "sensorhub-results",
+      "doc": "Buckets: raw uploads and normalized results.\n",
+      "versioned": false,
+      "public": false
+    }
+  ]
+}

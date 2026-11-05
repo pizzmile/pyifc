@@ -1,0 +1,15 @@
+{
+  "resource": {
+    "terraform_data": {
+      "before_app": {
+        "provisioner": [
+          {
+            "local-exec": {
+              "command": "docker network disconnect ${var.network} floci-encore && docker network connect --alias floci-encore --alias ${aws_s3_bucket.sensorhub_results.bucket}.floci-encore --alias ${aws_s3_bucket.sensorhub_staging.bucket}.floci-encore ${var.network} floci-encore"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

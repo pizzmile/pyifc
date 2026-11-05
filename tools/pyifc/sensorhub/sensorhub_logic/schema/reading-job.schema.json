@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://infra-from-code.example/schema/reading-job.schema.json",
+  "title": "Queued reading reference",
+  "type": "object",
+  "required": ["id", "staging_key"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "staging_key": { "type": "string", "minLength": 1 }
+  }
+}

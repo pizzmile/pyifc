@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://infra-from-code.example/schema/line-voltage-reading.schema.json",
+  "title": "Line-voltage reading upload",
+  "type": "object",
+  "required": ["kind", "fleet_id", "asset_id", "timestamp", "value"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": { "const": "line_voltage" },
+    "fleet_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "asset_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "value": { "type": "number", "minimum": 0 }
+  }
+}
